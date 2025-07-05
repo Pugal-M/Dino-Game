@@ -1,41 +1,91 @@
-import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
+// import 'package:flutter/material.dart';
 
-class SettingsPage extends StatefulWidget {
-  const SettingsPage({super.key});
+// class SettingsDialog extends StatefulWidget {
+//   const SettingsDialog({super.key});
 
-  @override
-  State<SettingsPage> createState() => _SettingsPageState();
-}
+//   @override
+//   State<SettingsDialog> createState() => _SettingsDialogState();
+// }
 
-class _SettingsPageState extends State<SettingsPage> {
-  bool sfxOn = true;
-  bool bgmOn = true;
+// class _SettingsDialogState extends State<SettingsDialog>
+//     with SingleTickerProviderStateMixin {
+//   late AnimationController _controller;
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        title: const Text("Settings"),
-        backgroundColor: Colors.grey[900],
-        foregroundColor: Colors.white,
-      ),
-      body: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          SwitchListTile(
-            title: const Text("SFX", style: TextStyle(color: Colors.white)),
-            value: sfxOn,
-            onChanged: (val) => setState(() => sfxOn = val),
-          ),
-          SwitchListTile(
-            title: const Text("BGM", style: TextStyle(color: Colors.white)),
-            value: bgmOn,
-            onChanged: (val) => setState(() => bgmOn = val),
-          ),
-        ],
-      ),
-    );
-  }
-}
+//   bool isSfxEnabled = true;
+//   bool isBgmEnabled = true;
+
+//   @override
+//   void initState() {
+//     super.initState();
+//     _controller = AnimationController(
+//       vsync: this,
+//       duration: const Duration(milliseconds: 250),
+//     )..forward();
+//   }
+
+//   @override
+//   void dispose() {
+//     _controller.dispose();
+//     super.dispose();
+//   }
+
+//   void toggleSfx(bool value) {
+//     setState(() {
+//       isSfxEnabled = value;
+//     });
+//     // Save to SharedPreferences or update state
+//   }
+
+//   void toggleBgm(bool value) {
+//     setState(() {
+//       isBgmEnabled = value;
+//     });
+//     // Save to SharedPreferences or update state
+//   }
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return Center(
+//       child: ScaleTransition(
+//         scale: CurvedAnimation(
+//           parent: _controller,
+//           curve: Curves.easeOutBack,
+//         ),
+//         child: AlertDialog(
+//           shape: RoundedRectangleBorder(
+//             borderRadius: BorderRadius.circular(16),
+//           ),
+//           backgroundColor: const Color.fromARGB(255, 0, 75, 105),
+//           title: const Text(
+//             'Settings',
+//             style: TextStyle(color: Colors.white,fontFamily: 'BitcountGridDouble'),
+
+//           ),
+//           content: Column(
+//             mainAxisSize: MainAxisSize.min,
+//             children: [
+//               SwitchListTile(
+//                 value: isSfxEnabled,
+//                 onChanged: toggleSfx,
+//                 title: const Text('SFX',
+//                     style: TextStyle(color: Colors.white,fontFamily: 'BitcountGridDouble'),),
+//               ),
+//               SwitchListTile(
+//                 value: isBgmEnabled,
+//                 onChanged: toggleBgm,
+//                 title: const Text('BGM',
+//                     style: TextStyle(color: Colors.white,fontFamily: 'BitcountGridDouble')),
+//               ),
+//             ],
+//           ),
+//           actions: [
+//             TextButton(
+//               onPressed: () => Navigator.pop(context),
+//               child: const Text('Close', style: TextStyle(color: Colors.white,fontFamily: 'BitcountGridDouble')),
+//             )
+//           ],
+//         ),
+//       ),
+//     );
+//   }
+// }

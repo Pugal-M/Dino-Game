@@ -3,9 +3,11 @@ import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 import 'package:flame/game.dart';
 import 'package:flame/input.dart';
+import 'package:flame/palette.dart';
 import 'package:flame/parallax.dart';
 import 'package:flame_audio/flame_audio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:myapp/game/enemy.dart';
@@ -15,7 +17,7 @@ import 'constants.dart';
 enum GameState { playing, paused, gameOver }
 
 class DinoGame extends FlameGame
-    with TapDetector, HasGameRef<DinoGame>, HasKeyboardHandlerComponents {
+    with TapDetector, HasGameRef<DinoGame>, HasKeyboardHandlerComponents, WidgetsBindingObserver {
   Player? _player;
   final List<Enemy> _enemies = [];
   final Random _random = Random();
@@ -38,11 +40,16 @@ class DinoGame extends FlameGame
   GameState _gameState = GameState.playing;
 
   final double jumpSpeed = 650;
-  final double gravity = 1400;
+  final double gravity = 1000;
+
+  late final HudButtonComponent _pauseButton;
+
+  @override
+  bool isLoaded = false;
 
   @override
   Future<void> onLoad() async {
-    await FlameAudio.audioCache.loadAll(['jump.wav', 'hit.wav', 'bg.wav']);
+    FlameAudio.audioCache.loadAll(['jump.wav', 'hit.wav', 'bg.wav']);
     await FlameAudio.loop('bg.wav', volume: 0.6);
 
     await images.loadAll([
@@ -55,7 +62,7 @@ class DinoGame extends FlameGame
       'DinoSprites - doux.png',
       'enemy/pig.png',
       'enemy/bat.png',
-      'enemy/rino.png',
+      'enemy/rino.png'
     ]);
 
     SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -77,10 +84,14 @@ class DinoGame extends FlameGame
 
     _scoreText = TextComponent(
       text: '0',
-      position: Vector2(10, 10),
-      anchor: Anchor.topLeft,
+      position: Vector2(size.x / 2, 10),
+      anchor: Anchor.topCenter,
       textRenderer: TextPaint(
-        style: const TextStyle(fontSize: 24, color: Color(0xFFFFFFFF)),
+        style: const TextStyle(
+          fontSize: 24,
+          color: Color(0xFFFFFFFF),
+          fontFamily: 'BitcountGridDouble',
+        ),
       ),
     );
     add(_scoreText);
@@ -89,7 +100,7 @@ class DinoGame extends FlameGame
       text: 'High: $highScore',
       anchor: Anchor.topRight,
       textRenderer: TextPaint(
-        style: const TextStyle(fontSize: 20, color: Color(0x88FFFFFF)),
+        style: const TextStyle(fontSize: 20, color: Color(0x88FFFFFF), fontFamily: 'BitcountGridDouble'),
       ),
     );
     add(_highScoreText!);
@@ -99,6 +110,35 @@ class DinoGame extends FlameGame
 
     _player = Player();
     await add(_player!);
+
+    _pauseButton = HudButtonComponent(
+      button: RectangleComponent(
+        size: Vector2(40, 40),
+        paint: BasicPalette.white.withAlpha(50).paint(),
+        children: [],
+      ),
+      position: Vector2(10, 10),
+      onPressed: () {
+        _gameState = _gameState == GameState.paused ? GameState.playing : GameState.paused;
+      },
+    );
+    add(_pauseButton);
+
+    WidgetsBinding.instance.addObserver(this);
+    isLoaded = true;
+  }
+
+  @override
+  void onTapDown(TapDownInfo info) {
+    super.onTapDown(info);
+
+    if (_gameState == GameState.playing && _player != null) {
+      _player!.jump(jumpSpeed);
+      FlameAudio.play('jump.wav');
+    } else if (_gameState == GameState.gameOver) {
+      restartGame();
+      overlays.remove('GameOverOverlay');
+    }
   }
 
   @override
@@ -117,6 +157,21 @@ class DinoGame extends FlameGame
 
     if (_highScoreText != null) {
       _highScoreText!.position = Vector2(canvasSize.x - 10, 10);
+    }
+
+    if (isLoaded) {
+      _pauseButton.position = Vector2(10, 10);
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
+      _gameState = GameState.paused;
+    } else if (state == AppLifecycleState.detached) {
+      FlameAudio.bgm.stop();
+      pauseEngine();
     }
   }
 
@@ -160,20 +215,10 @@ class DinoGame extends FlameGame
   }
 
   @override
-  void onTapDown(TapDownInfo info) {
-    super.onTapDown(info);
-    if (_gameState == GameState.playing && _player != null) {
-      _player!.jump(jumpSpeed);
-      FlameAudio.play('jump.wav');
-    } else if (_gameState == GameState.gameOver) {
-      restartGame();
-      overlays.remove('GameOverOverlay');
-    }
-  }
-
-  @override
   void update(double dt) {
     super.update(dt);
+
+    if (_gameState == GameState.paused) return;
 
     final slowmo = _gameState == GameState.gameOver ? 0.1 : 1.0;
     final adjustedDt = dt * slowmo;
@@ -260,7 +305,9 @@ class DinoGame extends FlameGame
     _currentSpawnInterval = _spawnInterval;
     _gameState = GameState.playing;
 
-    _enemies.forEach((e) => e.removeFromParent());
+    for (var e in _enemies) {
+      e.removeFromParent();
+    }
     _enemies.clear();
 
     _player = Player();
@@ -273,6 +320,14 @@ class DinoGame extends FlameGame
     _player?.height = tileSize;
     _player?.x = 200;
     _player?.y = groundY;
+  }
+
+  @override
+  void onDetach() {
+    WidgetsBinding.instance.removeObserver(this);
+    FlameAudio.bgm.stop();
+    pauseEngine();
+    super.onDetach();
   }
 }
 
@@ -290,34 +345,94 @@ class GameOverOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Container(
-        width: 300,
-        height: 220,
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.black87,
-          borderRadius: BorderRadius.circular(16),
+    return Stack(
+      children: [
+        const ModalBarrier(
+          dismissible: false,
+          color: Colors.black54,
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text('Game Over',
-                style: TextStyle(fontSize: 28, color: Colors.white)),
-            const SizedBox(height: 12),
-            Text('Score: $score',
-                style: const TextStyle(fontSize: 20, color: Colors.white)),
-            const SizedBox(height: 4),
-            Text('High Score: $highScore',
-                style: const TextStyle(fontSize: 18, color: Colors.white70)),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: onRestart,
-              child: const Text('Restart'),
-            )
-          ],
+        Center(
+          child: Container(
+            width: 350,
+            height: 260,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.black87,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text('Game Over',
+                    style: TextStyle(
+                        fontSize: 28,
+                        color: Colors.white,
+                        fontFamily: 'BitcountGridDouble',
+                        decoration: TextDecoration.none)),
+                const SizedBox(height: 12),
+                Text('Score: $score',
+                    style: const TextStyle(
+                        fontSize: 20,
+                        color: Colors.white,
+                        fontFamily: 'BitcountGridDouble',
+                        decoration: TextDecoration.none)),
+                const SizedBox(height: 4),
+                Text('High Score: $highScore',
+                    style: const TextStyle(
+                        fontSize: 18,
+                        color: Colors.white70,
+                        fontFamily: 'BitcountGridDouble',
+                        decoration: TextDecoration.none)),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.black54,
+                        foregroundColor: Colors.greenAccent,
+                        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+                        textStyle: const TextStyle(
+                          fontFamily: 'BitcountGridDouble',
+                          fontSize: 15,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(18.0),
+                          side: const BorderSide(color: Colors.greenAccent),
+                        ),
+                      ),
+                      onPressed: onRestart,
+                      child: const Text('Restart', style: TextStyle(fontFamily: 'BitcountGridDouble')),
+                    ),
+                    const SizedBox(width: 10),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.black54,
+                        foregroundColor: Colors.greenAccent,
+                        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+                        textStyle: const TextStyle(
+                          fontFamily: 'BitcountGridDouble',
+                          fontSize: 15,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(18.0),
+                          side: const BorderSide(color: Colors.greenAccent),
+                        ),
+                      ),
+                      onPressed: () {
+                        Navigator.of(context).popUntil((route) => route.isFirst);
+                      },
+                      child: const Text('Home', style: TextStyle(fontFamily: 'BitcountGridDouble')),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
         ),
-      ),
+      ],
     );
   }
 }
+
