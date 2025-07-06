@@ -1,5 +1,4 @@
 import 'package:flame/game.dart';
-import 'package:flame_audio/flame_audio.dart';
 import 'package:flutter/material.dart';
 import 'package:myapp/game/back_ground.dart';
 import 'package:myapp/game/game.dart';
@@ -16,13 +15,10 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    FlameAudio.bgm.initialize();
-    FlameAudio.bgm.play('bg.wav'); // Play background music
   }
 
   @override
   void dispose() {
-    FlameAudio.bgm.stop(); // Stop music when leaving the page
     super.dispose();
   }
 
@@ -50,7 +46,6 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
                 onPressed: () {
-                  FlameAudio.bgm.stop();
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -82,11 +77,10 @@ class _HomePageState extends State<HomePage> {
                                     builder: (context) => PauseDialog(
                                       onResume: () {
                                         dinoGame.resumeEngine();
-                                        dinoGame.overlays.add('PauseButton'); // optional
+                                        dinoGame.overlays.add('PauseButton');
                                       },
                                     ),
-                                  )
-                                  .then((_) {
+                                  ).then((_) {
                                     dinoGame.resumeEngine();
                                     dinoGame.overlays.add('PauseButton');
                                   });
@@ -112,30 +106,6 @@ class _HomePageState extends State<HomePage> {
                 },
                 child: const Text('Play'),
               ),
-              // const SizedBox(height: 20),
-              // ElevatedButton(
-              //   style: ElevatedButton.styleFrom(
-              //     backgroundColor: Colors.black54,
-              //     foregroundColor: Colors.greenAccent,
-              //     padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
-              //     textStyle: const TextStyle(
-              //       fontFamily: 'BitcountGridDouble',
-              //       fontSize: 40,
-              //     ),
-              //     shape: RoundedRectangleBorder(
-              //       borderRadius: BorderRadius.circular(18.0),
-              //       side: const BorderSide(color: Colors.greenAccent),
-              //     ),
-              //   ),
-              //   onPressed: () {
-              //     showDialog(
-              //       context: context,
-              //       barrierDismissible: true,
-              //       builder: (context) => const SettingsDialog(),
-              //     );
-              //   },
-              //   child: const Text('Settings'),
-              // ),
             ],
           ),
         ),

@@ -7,7 +7,6 @@ import 'package:flame/palette.dart';
 import 'package:flame/parallax.dart';
 import 'package:flame_audio/flame_audio.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:myapp/game/enemy.dart';
@@ -35,7 +34,6 @@ class DinoGame extends FlameGame
 
   double _baseEnemySpeed = 100;
   int _nextDifficultyScore = 2000;
-  EnemyType? _lastSpawnedType;
 
   GameState _gameState = GameState.playing;
 
@@ -49,8 +47,7 @@ class DinoGame extends FlameGame
 
   @override
   Future<void> onLoad() async {
-    FlameAudio.audioCache.loadAll(['jump.wav', 'hit.wav', 'bg.wav']);
-    await FlameAudio.loop('bg.wav', volume: 0.6);
+    FlameAudio.audioCache.loadAll(['jump.wav', 'hit.wav']);
 
     await images.loadAll([
       'parallex/plx-1.png',
@@ -170,7 +167,6 @@ class DinoGame extends FlameGame
         state == AppLifecycleState.inactive) {
       _gameState = GameState.paused;
     } else if (state == AppLifecycleState.detached) {
-      FlameAudio.bgm.stop();
       pauseEngine();
     }
   }
@@ -325,11 +321,11 @@ class DinoGame extends FlameGame
   @override
   void onDetach() {
     WidgetsBinding.instance.removeObserver(this);
-    FlameAudio.bgm.stop();
     pauseEngine();
     super.onDetach();
   }
 }
+
 
 class GameOverOverlay extends StatelessWidget {
   final int score;
